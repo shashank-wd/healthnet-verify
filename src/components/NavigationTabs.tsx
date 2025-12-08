@@ -6,13 +6,14 @@ import {
   Upload,
   FileText,
   ListTodo,
-  Settings,
-  Database
+  Database,
+  UserCheck
 } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/providers', label: 'Providers', icon: Users },
+  { to: '/validate', label: 'Validate Provider', icon: UserCheck },
   { to: '/upload', label: 'Upload', icon: Upload },
   { to: '/reports', label: 'Reports', icon: FileText },
   { to: '/queue', label: 'Action Queue', icon: ListTodo },

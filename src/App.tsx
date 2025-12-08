@@ -14,6 +14,7 @@ import ActionQueuePage from "./pages/ActionQueuePage";
 import SyntheticDataPage from "./pages/SyntheticDataPage";
 import AuthPage from "./pages/AuthPage";
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
+import SingleProviderCheckPage from "./pages/SingleProviderCheckPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/" element={<ProtectedLayout><Index /></ProtectedLayout>} />
           <Route path="/providers" element={<ProtectedLayout><ProvidersPage /></ProtectedLayout>} />
+          <Route path="/validate" element={<ProtectedLayout><SingleProviderCheckPage /></ProtectedLayout>} />
           <Route path="/upload" element={<ProtectedLayout><UploadPage /></ProtectedLayout>} />
           <Route path="/reports" element={<ProtectedLayout><ReportsPage /></ProtectedLayout>} />
           <Route path="/queue" element={<ProtectedLayout><ActionQueuePage /></ProtectedLayout>} />
