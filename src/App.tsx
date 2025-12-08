@@ -13,6 +13,7 @@ import ReportsPage from "./pages/ReportsPage";
 import ActionQueuePage from "./pages/ActionQueuePage";
 import SyntheticDataPage from "./pages/SyntheticDataPage";
 import AuthPage from "./pages/AuthPage";
+import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/reports" element={<ProtectedLayout><ReportsPage /></ProtectedLayout>} />
           <Route path="/queue" element={<ProtectedLayout><ActionQueuePage /></ProtectedLayout>} />
           <Route path="/synthetic" element={<ProtectedLayout><SyntheticDataPage /></ProtectedLayout>} />
+          <Route path="/profile" element={<ProtectedLayout><ProfileSettingsPage /></ProtectedLayout>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
