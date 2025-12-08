@@ -1,1 +1,4 @@
 project_id = "wlaungnxxfjocrhovsqn"
+
+[functions.npi-registry]
+verify_jwt = false

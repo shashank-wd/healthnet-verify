@@ -41,6 +41,152 @@ export type Database = {
         }
         Relationships: []
       }
+      providers: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          correctness_score: number | null
+          country: string
+          created_at: string
+          enumeration_type: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          last_synced_at: string | null
+          name: string
+          needs_review: boolean | null
+          npi_number: string | null
+          organization_name: string | null
+          phone: string | null
+          postal_code: string | null
+          provider_id: string | null
+          raw_api_payload: Json | null
+          source: string
+          specialty: string | null
+          state: string | null
+          status: string | null
+          taxonomy_code: string | null
+          taxonomy_description: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          correctness_score?: number | null
+          country: string
+          created_at?: string
+          enumeration_type?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          last_synced_at?: string | null
+          name: string
+          needs_review?: boolean | null
+          npi_number?: string | null
+          organization_name?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          provider_id?: string | null
+          raw_api_payload?: Json | null
+          source: string
+          specialty?: string | null
+          state?: string | null
+          status?: string | null
+          taxonomy_code?: string | null
+          taxonomy_description?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          correctness_score?: number | null
+          country?: string
+          created_at?: string
+          enumeration_type?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          last_synced_at?: string | null
+          name?: string
+          needs_review?: boolean | null
+          npi_number?: string | null
+          organization_name?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          provider_id?: string | null
+          raw_api_payload?: Json | null
+          source?: string
+          specialty?: string | null
+          state?: string | null
+          status?: string | null
+          taxonomy_code?: string | null
+          taxonomy_description?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sync_history: {
+        Row: {
+          action: string
+          correctness_score: number | null
+          country: string
+          created_at: string
+          field_scores: Json | null
+          fields_updated: string[] | null
+          id: string
+          new_values: Json | null
+          notes: string | null
+          npi_or_provider_id: string | null
+          previous_values: Json | null
+          provider_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          correctness_score?: number | null
+          country: string
+          created_at?: string
+          field_scores?: Json | null
+          fields_updated?: string[] | null
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          npi_or_provider_id?: string | null
+          previous_values?: Json | null
+          provider_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          correctness_score?: number | null
+          country?: string
+          created_at?: string
+          field_scores?: Json | null
+          fields_updated?: string[] | null
+          id?: string
+          new_values?: Json | null
+          notes?: string | null
+          npi_or_provider_id?: string | null
+          previous_values?: Json | null
+          provider_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_history_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
