@@ -5,6 +5,7 @@ import { ProviderDetailModal } from '@/components/ProviderDetailModal';
 import { EmailGeneratorModal } from '@/components/EmailGeneratorModal';
 import { ValidationProgress } from '@/components/ValidationProgress';
 import { useProviders } from '@/hooks/useProviders';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Provider } from '@/types/provider';
 import {
@@ -31,6 +32,8 @@ export default function Dashboard() {
     exportProviders,
   } = useProviders();
 
+  const { addNotification } = useNotifications();
+
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -48,6 +51,12 @@ export default function Dashboard() {
 
   const handleApprove = (provider: Provider) => {
     updateProviderStatus(provider.id, 'validated');
+    addNotification(
+      'approved',
+      'Provider Approved',
+      `${provider.name} has been marked as validated.`,
+      { id: provider.id, name: provider.name }
+    );
     toast({
       title: 'Provider approved',
       description: `${provider.name} has been marked as validated.`,
@@ -57,6 +66,12 @@ export default function Dashboard() {
 
   const handleRequestReview = (provider: Provider) => {
     updateProviderStatus(provider.id, 'needs_review');
+    addNotification(
+      'review_requested',
+      'Review Requested',
+      `${provider.name} has been flagged for manual review.`,
+      { id: provider.id, name: provider.name }
+    );
     toast({
       title: 'Review requested',
       description: `${provider.name} has been flagged for manual review.`,
@@ -66,10 +81,25 @@ export default function Dashboard() {
 
   const handleStartValidation = () => {
     startValidation();
+    addNotification(
+      'info',
+      'Validation Started',
+      `Processing ${stats.total} providers against registry sources...`
+    );
     toast({
       title: 'Validation started',
       description: 'Processing provider data against multiple sources...',
     });
+  };
+
+  const handleEmailSent = (provider: Provider) => {
+    addNotification(
+      'email_sent',
+      'Verification Email Sent',
+      `Verification request sent to ${provider.name}.`,
+      { id: provider.id, name: provider.name }
+    );
+    setEmailModalOpen(false);
   };
 
   return (
@@ -184,6 +214,7 @@ export default function Dashboard() {
         provider={emailProvider}
         open={emailModalOpen}
         onClose={() => setEmailModalOpen(false)}
+        onEmailSent={handleEmailSent}
       />
     </div>
   );

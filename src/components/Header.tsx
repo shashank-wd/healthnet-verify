@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Bell, Settings, LogOut, User } from 'lucide-react';
+import { Activity, Settings, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { NotificationDropdown } from '@/components/NotificationDropdown';
 
 interface HeaderProps {
   className?: string;
@@ -82,12 +83,7 @@ export function Header({ className }: HeaderProps) {
         </div>
         
         <nav className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-              3
-            </span>
-          </Button>
+          <NotificationDropdown />
           <Button variant="ghost" size="icon">
             <Settings className="h-5 w-5" />
           </Button>
