@@ -18,12 +18,14 @@ interface EmailGeneratorModalProps {
   provider: Provider | null;
   open: boolean;
   onClose: () => void;
+  onEmailSent?: (provider: Provider) => void;
 }
 
 export function EmailGeneratorModal({
   provider,
   open,
   onClose,
+  onEmailSent,
 }: EmailGeneratorModalProps) {
   const [copied, setCopied] = useState(false);
 
@@ -88,6 +90,7 @@ Healthcare Network Services`;
       title: 'Email sent',
       description: `Verification request sent to ${provider.name}.`,
     });
+    onEmailSent?.(provider);
     onClose();
   };
 

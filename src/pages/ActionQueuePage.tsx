@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useProviders } from '@/hooks/useProviders';
+import { useNotifications } from '@/hooks/useNotifications';
 import { EmailGeneratorModal } from '@/components/EmailGeneratorModal';
 import { Provider } from '@/types/provider';
 import {
@@ -25,6 +26,7 @@ import { cn } from '@/lib/utils';
 
 export default function ActionQueuePage() {
   const { providers, updateProviderStatus } = useProviders();
+  const { addNotification } = useNotifications();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [emailProvider, setEmailProvider] = useState<Provider | null>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -64,6 +66,12 @@ export default function ActionQueuePage() {
 
   const handleMarkComplete = (provider: Provider) => {
     updateProviderStatus(provider.id, 'validated');
+    addNotification(
+      'approved',
+      'Provider Validated',
+      `${provider.name} has been marked as validated.`,
+      { id: provider.id, name: provider.name }
+    );
     toast({
       title: 'Marked as complete',
       description: `${provider.name} has been validated.`,
@@ -71,11 +79,27 @@ export default function ActionQueuePage() {
   };
 
   const handleBulkEmail = () => {
+    const count = selectedItems.size;
+    addNotification(
+      'email_sent',
+      'Bulk Email Sent',
+      `Verification emails sent to ${count} providers.`
+    );
     toast({
       title: 'Bulk email initiated',
-      description: `Verification emails will be sent to ${selectedItems.size} providers.`,
+      description: `Verification emails will be sent to ${count} providers.`,
     });
     setSelectedItems(new Set());
+  };
+
+  const handleEmailSent = (provider: Provider) => {
+    addNotification(
+      'email_sent',
+      'Verification Email Sent',
+      `Verification request sent to ${provider.name}.`,
+      { id: provider.id, name: provider.name }
+    );
+    setEmailModalOpen(false);
   };
 
   const priorityConfig = {
@@ -247,6 +271,7 @@ export default function ActionQueuePage() {
         provider={emailProvider}
         open={emailModalOpen}
         onClose={() => setEmailModalOpen(false)}
+        onEmailSent={handleEmailSent}
       />
     </div>
   );
