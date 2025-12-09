@@ -9,9 +9,9 @@ const corsHeaders = {
 // US NPI Registry API (CMS NPPES)
 const US_NPI_API_BASE_URL = "https://npiregistry.cms.hhs.gov/api";
 
-// India Provider Registry (configurable - uses environment variable or mock)
-const IN_REGISTRY_BASE_URL = Deno.env.get('IN_PROVIDER_REGISTRY_BASE_URL') || '';
-const IN_REGISTRY_API_KEY = Deno.env.get('IN_PROVIDER_REGISTRY_API_KEY') || '';
+// India HPR (Health Professional Registry) API
+const IN_HPR_BASE_URL = "https://hpr.abdm.gov.in/api/v1";
+const IN_HPR_API_KEY = Deno.env.get('IN_HPR_API_KEY') || '';
 
 interface ProviderSearchParams {
   country: 'US' | 'IN';
@@ -211,73 +211,97 @@ async function searchUSNPI(params: ProviderSearchParams): Promise<{ success: boo
   }
 }
 
-// Search India Provider Registry (mock/configurable)
-async function searchIndiaRegistry(params: ProviderSearchParams): Promise<{ success: boolean; data?: NormalizedProvider[]; error?: string }> {
-  if (!IN_REGISTRY_BASE_URL) {
-    // Return mock data if no real endpoint configured
-    console.log('India registry not configured, returning mock data');
-    return {
-      success: true,
-      data: params.providerId ? [{
-        provider_id: params.providerId,
-        name: 'Sample India Provider',
-        first_name: 'Sample',
-        last_name: 'Provider',
-        phone: '+91-9876543210',
-        address_line1: '123 Medical Street',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        postal_code: '400001',
-        specialty: 'General Medicine',
-        raw_api_payload: { mock: true },
-        source: 'IN_REGISTRY'
-      }] : []
-    };
-  }
+// Parse India HPR response
+function parseIndiaHPRResponse(result: Record<string, unknown>): NormalizedProvider {
+  const professionalName = String(result.name || result.professionalName || '');
+  const firstName = String(result.firstName || '');
+  const lastName = String(result.lastName || '');
   
+  const address = result.address as Record<string, unknown> || {};
+  const qualification = (result.qualifications as Array<Record<string, unknown>> || [])[0] || {};
+  
+  return {
+    provider_id: String(result.hprId || result.registrationNumber || result.id || ''),
+    name: professionalName || `${firstName} ${lastName}`.trim(),
+    first_name: firstName || undefined,
+    last_name: lastName || undefined,
+    phone: String(result.mobile || result.phone || result.contactNumber || ''),
+    address_line1: String(address.line1 || address.addressLine1 || address.address || ''),
+    address_line2: String(address.line2 || address.addressLine2 || '') || undefined,
+    city: String(address.city || address.district || ''),
+    state: String(address.state || address.stateName || ''),
+    postal_code: String(address.pincode || address.postalCode || ''),
+    specialty: String(qualification.specialty || result.specialty || result.specialization || ''),
+    organization_name: String(result.organization || result.hospitalName || '') || undefined,
+    taxonomy_code: String(qualification.qualificationCode || '') || undefined,
+    taxonomy_description: String(qualification.qualificationName || qualification.degree || '') || undefined,
+    enumeration_type: String(result.professionalType || result.category || 'Individual'),
+    raw_api_payload: result,
+    source: 'IN_REGISTRY'
+  };
+}
+
+// Search India HPR (Health Professional Registry)
+async function searchIndiaRegistry(params: ProviderSearchParams): Promise<{ success: boolean; data?: NormalizedProvider[]; error?: string }> {
   try {
-    const queryParams = new URLSearchParams();
-    if (params.providerId) queryParams.append('id', params.providerId);
-    if (params.name) queryParams.append('name', params.name);
-    if (params.city) queryParams.append('city', params.city);
-    if (params.state) queryParams.append('state', params.state);
-    
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (IN_REGISTRY_API_KEY) {
-      headers['Authorization'] = `Bearer ${IN_REGISTRY_API_KEY}`;
+    const headers: Record<string, string> = { 
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    if (IN_HPR_API_KEY) {
+      headers['Authorization'] = `Bearer ${IN_HPR_API_KEY}`;
     }
+
+    let url: string;
     
-    const response = await fetch(`${IN_REGISTRY_BASE_URL}?${queryParams.toString()}`, { headers });
+    // Determine which endpoint to use based on params
+    if (params.providerId) {
+      // Search by registration number
+      url = `${IN_HPR_BASE_URL}/search/professionalByRegistrationNumber?registrationNumber=${encodeURIComponent(params.providerId)}`;
+      console.log('Fetching India HPR by registration number:', url);
+    } else if (params.name || params.firstName || params.lastName) {
+      // Search by name
+      const searchName = params.name || `${params.firstName || ''} ${params.lastName || ''}`.trim();
+      url = `${IN_HPR_BASE_URL}/search/professionalByName?name=${encodeURIComponent(searchName)}`;
+      console.log('Fetching India HPR by name:', url);
+    } else {
+      return { success: true, data: [] };
+    }
+
+    const response = await fetch(url, { headers });
     
     if (!response.ok) {
       if (response.status === 429) {
         return { success: false, error: 'Rate limit exceeded. Please try again later.' };
       }
-      return { success: false, error: `India Registry API error: ${response.status}` };
+      if (response.status === 404) {
+        return { success: true, data: [] };
+      }
+      console.error('India HPR API error:', response.status, await response.text());
+      return { success: false, error: `India HPR API error: ${response.status}` };
     }
     
     const data = await response.json();
+    console.log('India HPR response:', JSON.stringify(data).slice(0, 500));
     
-    // Normalize India response (adapt based on actual API structure)
-    const providers: NormalizedProvider[] = (data.results || data.providers || []).map((p: Record<string, unknown>) => ({
-      provider_id: String(p.id || p.provider_id || ''),
-      name: String(p.name || p.provider_name || ''),
-      first_name: String(p.first_name || '') || undefined,
-      last_name: String(p.last_name || '') || undefined,
-      phone: String(p.phone || p.contact_number || ''),
-      address_line1: String(p.address || p.address_line1 || ''),
-      city: String(p.city || ''),
-      state: String(p.state || ''),
-      postal_code: String(p.postal_code || p.pincode || ''),
-      specialty: String(p.specialty || p.specialization || ''),
-      raw_api_payload: p,
-      source: 'IN_REGISTRY' as const
-    }));
+    // Handle different response structures
+    let results: Array<Record<string, unknown>> = [];
+    if (Array.isArray(data)) {
+      results = data;
+    } else if (data.professionals) {
+      results = data.professionals;
+    } else if (data.results) {
+      results = data.results;
+    } else if (data.hprId || data.registrationNumber) {
+      // Single result
+      results = [data];
+    }
     
+    const providers = results.map(parseIndiaHPRResponse);
     return { success: true, data: providers };
     
   } catch (error) {
-    console.error('India registry search error:', error);
+    console.error('India HPR search error:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
