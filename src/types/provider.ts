@@ -11,6 +11,7 @@ export interface ProviderAddress {
   city: string;
   state: string;
   zip: string;
+  country?: string;
 }
 
 export interface DataSource {
@@ -66,6 +67,7 @@ export interface Provider {
   priority: Priority;
   memberImpact: number;
   reviewReason?: string;
+  country?: Country;
 }
 
 // New types for NPI Registry integration
