@@ -84,7 +84,7 @@ export function Header({ className }: HeaderProps) {
         
         <nav className="flex items-center gap-2">
           <NotificationDropdown />
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
             <Settings className="h-5 w-5" />
           </Button>
           
@@ -109,9 +109,9 @@ export function Header({ className }: HeaderProps) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/profile')}>
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
                 <User className="mr-2 h-4 w-4" />
-                Profile Settings
+                Settings
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
