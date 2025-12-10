@@ -9,12 +9,27 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+interface ProfileData {
+  full_name: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+}
+
 export default function ProfileSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [pincode, setPincode] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,7 +45,7 @@ export default function ProfileSettings() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url')
+        .select('full_name, avatar_url, phone, address, city, state, pincode')
         .eq('user_id', user!.id)
         .maybeSingle();
 
@@ -39,6 +54,11 @@ export default function ProfileSettings() {
       if (data) {
         setFullName(data.full_name || '');
         setAvatarUrl(data.avatar_url);
+        setPhone(data.phone || '');
+        setAddress(data.address || '');
+        setCity(data.city || '');
+        setState(data.state || '');
+        setPincode(data.pincode || '');
       }
     } catch (error: any) {
       toast({
@@ -122,6 +142,11 @@ export default function ProfileSettings() {
           user_id: user.id,
           full_name: fullName,
           avatar_url: avatarUrl,
+          phone,
+          address,
+          city,
+          state,
+          pincode,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id',
@@ -201,27 +226,79 @@ export default function ProfileSettings() {
         </div>
 
         <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                value={user?.email || ''}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name</Label>
+            <Label htmlFor="phone">Phone Number</Label>
             <Input
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Enter your full name"
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Enter your phone number"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="address">Address</Label>
             <Input
-              id="email"
-              value={user?.email || ''}
-              disabled
-              className="bg-muted"
+              id="address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Enter your street address"
             />
-            <p className="text-xs text-muted-foreground">
-              Email cannot be changed
-            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="City"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Input
+                id="state"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder="State"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pincode">Pincode</Label>
+              <Input
+                id="pincode"
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value)}
+                placeholder="Pincode"
+              />
+            </div>
           </div>
         </div>
 
