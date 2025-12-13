@@ -1,6 +1,8 @@
 export interface CountryData {
   name: string;
   code: string;
+  flag: string;
+  phoneCode: string;
   states: string[];
   pincodePattern: RegExp;
   pincodeLength: number;
@@ -11,6 +13,8 @@ export const countries: CountryData[] = [
   {
     name: 'United States',
     code: 'US',
+    flag: '🇺🇸',
+    phoneCode: '+1',
     pincodePattern: /^\d{5}(-\d{4})?$/,
     pincodeLength: 5,
     pincodePlaceholder: '12345',
@@ -28,6 +32,8 @@ export const countries: CountryData[] = [
   {
     name: 'India',
     code: 'IN',
+    flag: '🇮🇳',
+    phoneCode: '+91',
     pincodePattern: /^\d{6}$/,
     pincodeLength: 6,
     pincodePlaceholder: '110001',
@@ -44,6 +50,8 @@ export const countries: CountryData[] = [
   {
     name: 'United Kingdom',
     code: 'GB',
+    flag: '🇬🇧',
+    phoneCode: '+44',
     pincodePattern: /^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i,
     pincodeLength: 8,
     pincodePlaceholder: 'SW1A 1AA',
@@ -54,6 +62,8 @@ export const countries: CountryData[] = [
   {
     name: 'Canada',
     code: 'CA',
+    flag: '🇨🇦',
+    phoneCode: '+1',
     pincodePattern: /^[A-Z]\d[A-Z] ?\d[A-Z]\d$/i,
     pincodeLength: 7,
     pincodePlaceholder: 'K1A 0B1',
@@ -66,6 +76,8 @@ export const countries: CountryData[] = [
   {
     name: 'Australia',
     code: 'AU',
+    flag: '🇦🇺',
+    phoneCode: '+61',
     pincodePattern: /^\d{4}$/,
     pincodeLength: 4,
     pincodePlaceholder: '2000',
@@ -77,6 +89,8 @@ export const countries: CountryData[] = [
   {
     name: 'Germany',
     code: 'DE',
+    flag: '🇩🇪',
+    phoneCode: '+49',
     pincodePattern: /^\d{5}$/,
     pincodeLength: 5,
     pincodePlaceholder: '10115',
@@ -89,6 +103,8 @@ export const countries: CountryData[] = [
   {
     name: 'France',
     code: 'FR',
+    flag: '🇫🇷',
+    phoneCode: '+33',
     pincodePattern: /^\d{5}$/,
     pincodeLength: 5,
     pincodePlaceholder: '75001',

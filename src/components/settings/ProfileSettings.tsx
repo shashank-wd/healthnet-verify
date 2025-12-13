@@ -34,7 +34,8 @@ export default function ProfileSettings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phoneCode, setPhoneCode] = useState('+1');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
@@ -48,6 +49,7 @@ export default function ProfileSettings() {
 
   const selectedCountry = getCountryByName(country);
   const availableStates = selectedCountry?.states || [];
+  const selectedPhoneCountry = countries.find(c => c.phoneCode === phoneCode);
 
   useEffect(() => {
     if (user) {
@@ -79,7 +81,16 @@ export default function ProfileSettings() {
       if (data) {
         setFullName(data.full_name || '');
         setAvatarUrl(data.avatar_url);
-        setPhone(data.phone || '');
+        // Parse phone number to extract country code
+        if (data.phone) {
+          const phoneMatch = data.phone.match(/^(\+\d{1,3})\s*(.*)$/);
+          if (phoneMatch) {
+            setPhoneCode(phoneMatch[1]);
+            setPhoneNumber(phoneMatch[2]);
+          } else {
+            setPhoneNumber(data.phone);
+          }
+        }
         setAddress(data.address || '');
         setCity(data.city || '');
         setState(data.state || '');
@@ -216,13 +227,14 @@ export default function ProfileSettings() {
     setSaving(true);
 
     try {
+      const fullPhone = phoneNumber ? `${phoneCode} ${phoneNumber}` : '';
       const { error } = await supabase
         .from('profiles')
         .upsert({
           user_id: user.id,
           full_name: fullName,
           avatar_url: avatarUrl,
-          phone,
+          phone: fullPhone,
           address,
           city,
           state,
@@ -330,13 +342,33 @@ export default function ProfileSettings() {
 
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter your phone number"
-            />
+            <div className="flex gap-2">
+              <Select value={phoneCode} onValueChange={setPhoneCode}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue>
+                    {selectedPhoneCountry ? `${selectedPhoneCountry.flag} ${phoneCode}` : phoneCode}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((c) => (
+                    <SelectItem key={c.code} value={c.phoneCode}>
+                      <span className="flex items-center gap-2">
+                        <span>{c.flag}</span>
+                        <span>{c.phoneCode}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                id="phone"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
+                placeholder="Enter phone number"
+                className="flex-1"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -354,12 +386,17 @@ export default function ProfileSettings() {
               <Label htmlFor="country">Country</Label>
               <Select value={country} onValueChange={setCountry}>
                 <SelectTrigger id="country">
-                  <SelectValue placeholder="Select country" />
+                  <SelectValue placeholder="Select country">
+                    {selectedCountry ? `${selectedCountry.flag} ${selectedCountry.name}` : 'Select country'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {countries.map((c) => (
                     <SelectItem key={c.code} value={c.name}>
-                      {c.name}
+                      <span className="flex items-center gap-2">
+                        <span>{c.flag}</span>
+                        <span>{c.name}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
