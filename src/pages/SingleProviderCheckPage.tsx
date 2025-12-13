@@ -11,22 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { registryService, UserProviderData } from '@/services/registryService';
 import { Country, ValidationResult, FieldScore } from '@/types/provider';
 import { cn } from '@/lib/utils';
-
-const US_STATES = [
-  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
-];
-
-const INDIA_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
-  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
-  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
-  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
-  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'
-];
+import { countries, getCountryByName, validatePincode } from '@/data/countriesAndStates';
 
 function FieldComparisonRow({ 
   field, 
@@ -85,6 +70,9 @@ export default function SingleProviderCheckPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [phoneCode, setPhoneCode] = useState('+1');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [pincodeError, setPincodeError] = useState('');
   
   const [formData, setFormData] = useState<UserProviderData>({
     country: 'US',
@@ -101,14 +89,53 @@ export default function SingleProviderCheckPage() {
     specialty: ''
   });
 
+  const selectedCountryData = countries.find(c => 
+    (country === 'US' && c.code === 'US') || 
+    (country === 'IN' && c.code === 'IN')
+  );
+  const selectedPhoneCountry = countries.find(c => c.phoneCode === phoneCode);
+  const availableStates = selectedCountryData?.states || [];
+
   const handleCountryChange = (newCountry: Country) => {
     setCountry(newCountry);
-    setFormData(prev => ({ ...prev, country: newCountry }));
+    setFormData(prev => ({ ...prev, country: newCountry, state: '' }));
     setValidationResult(null);
+    setPincodeError('');
+    // Update phone code based on country
+    const countryData = countries.find(c => 
+      (newCountry === 'US' && c.code === 'US') || 
+      (newCountry === 'IN' && c.code === 'IN')
+    );
+    if (countryData) {
+      setPhoneCode(countryData.phoneCode);
+    }
   };
 
   const handleInputChange = (field: keyof UserProviderData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePhoneNumberChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '');
+    setPhoneNumber(digitsOnly);
+    setFormData(prev => ({ ...prev, phone: digitsOnly ? `${phoneCode} ${digitsOnly}` : '' }));
+  };
+
+  const handlePostalCodeChange = (value: string) => {
+    // Only allow digits for US and India
+    const digitsOnly = value.replace(/\D/g, '');
+    setFormData(prev => ({ ...prev, postal_code: digitsOnly }));
+    
+    // Validate pincode
+    if (digitsOnly && selectedCountryData) {
+      if (!validatePincode(digitsOnly, selectedCountryData.name)) {
+        setPincodeError(`Invalid format. Example: ${selectedCountryData.pincodePlaceholder}`);
+      } else {
+        setPincodeError('');
+      }
+    } else {
+      setPincodeError('');
+    }
   };
 
   const handleValidate = async () => {
@@ -190,7 +217,7 @@ export default function SingleProviderCheckPage() {
     }
   };
 
-  const states = country === 'US' ? US_STATES : INDIA_STATES;
+  
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -268,11 +295,36 @@ export default function SingleProviderCheckPage() {
 
             <div className="space-y-2">
               <Label>Phone</Label>
-              <Input
-                placeholder={country === 'US' ? '(555) 123-4567' : '+91 98765 43210'}
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-              />
+              <div className="flex gap-2">
+                <Select value={phoneCode} onValueChange={(v) => {
+                  setPhoneCode(v);
+                  if (phoneNumber) {
+                    setFormData(prev => ({ ...prev, phone: `${v} ${phoneNumber}` }));
+                  }
+                }}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue>
+                      {selectedPhoneCountry ? `${selectedPhoneCountry.flag} ${phoneCode}` : phoneCode}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((c) => (
+                      <SelectItem key={c.code} value={c.phoneCode}>
+                        <span className="flex items-center gap-2">
+                          <span>{c.flag}</span>
+                          <span>{c.phoneCode}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Phone number"
+                  value={phoneNumber}
+                  onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -295,12 +347,16 @@ export default function SingleProviderCheckPage() {
               </div>
               <div className="space-y-2">
                 <Label>State</Label>
-                <Select value={formData.state} onValueChange={(v) => handleInputChange('state', v)}>
+                <Select 
+                  value={formData.state} 
+                  onValueChange={(v) => handleInputChange('state', v)}
+                  disabled={availableStates.length === 0}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {states.map((s) => (
+                    {availableStates.map((s) => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
                   </SelectContent>
@@ -309,10 +365,15 @@ export default function SingleProviderCheckPage() {
               <div className="space-y-2">
                 <Label>{country === 'US' ? 'ZIP Code' : 'PIN Code'}</Label>
                 <Input
-                  placeholder={country === 'US' ? '12345' : '400001'}
+                  placeholder={selectedCountryData?.pincodePlaceholder || '12345'}
                   value={formData.postal_code}
-                  onChange={(e) => handleInputChange('postal_code', e.target.value)}
+                  onChange={(e) => handlePostalCodeChange(e.target.value)}
+                  maxLength={selectedCountryData?.pincodeLength ? selectedCountryData.pincodeLength + 2 : 10}
+                  className={pincodeError ? 'border-destructive' : ''}
                 />
+                {pincodeError && (
+                  <p className="text-xs text-destructive">{pincodeError}</p>
+                )}
               </div>
             </div>
 
