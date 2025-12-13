@@ -5,9 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { countries, getCountryByName, validatePincode } from '@/data/countriesAndStates';
 
 interface ProfileData {
   full_name: string | null;
@@ -17,6 +25,7 @@ interface ProfileData {
   city: string | null;
   state: string | null;
   pincode: string | null;
+  country: string | null;
 }
 
 export default function ProfileSettings() {
@@ -28,18 +37,34 @@ export default function ProfileSettings() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [country, setCountry] = useState('');
   const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
+  const [pincodeError, setPincodeError] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const selectedCountry = getCountryByName(country);
+  const availableStates = selectedCountry?.states || [];
 
   useEffect(() => {
     if (user) {
       fetchProfile();
     }
   }, [user]);
+
+  // Reset state when country changes
+  useEffect(() => {
+    if (selectedCountry && state && !selectedCountry.states.includes(state)) {
+      setState('');
+    }
+    // Revalidate pincode when country changes
+    if (pincode && selectedCountry) {
+      validatePincodeInput(pincode);
+    }
+  }, [country]);
 
   const fetchProfile = async () => {
     try {
@@ -59,6 +84,13 @@ export default function ProfileSettings() {
         setCity(data.city || '');
         setState(data.state || '');
         setPincode(data.pincode || '');
+        // Try to detect country from state
+        if (data.state) {
+          const matchedCountry = countries.find(c => c.states.includes(data.state!));
+          if (matchedCountry) {
+            setCountry(matchedCountry.name);
+          }
+        }
       }
     } catch (error: any) {
       toast({
@@ -130,8 +162,56 @@ export default function ProfileSettings() {
     }
   };
 
+  const handlePincodeChange = (value: string) => {
+    // Only allow digits for countries that use numeric pincodes
+    const numericOnly = ['United States', 'India', 'Germany', 'France', 'Australia'];
+    
+    if (numericOnly.includes(country)) {
+      // Only allow digits
+      const digitsOnly = value.replace(/\D/g, '');
+      setPincode(digitsOnly);
+      validatePincodeInput(digitsOnly);
+    } else {
+      // Allow alphanumeric for countries like UK, Canada
+      const cleaned = value.toUpperCase().replace(/[^A-Z0-9 ]/g, '');
+      setPincode(cleaned);
+      validatePincodeInput(cleaned);
+    }
+  };
+
+  const validatePincodeInput = (value: string) => {
+    if (!value) {
+      setPincodeError('');
+      return true;
+    }
+
+    if (!country) {
+      setPincodeError('Please select a country first');
+      return false;
+    }
+
+    if (!validatePincode(value, country)) {
+      const countryData = getCountryByName(country);
+      setPincodeError(`Invalid format. Example: ${countryData?.pincodePlaceholder || ''}`);
+      return false;
+    }
+
+    setPincodeError('');
+    return true;
+  };
+
   const handleSave = async () => {
     if (!user) return;
+
+    // Validate pincode before saving
+    if (pincode && !validatePincodeInput(pincode)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid pincode',
+        description: 'Please enter a valid pincode for the selected country.',
+      });
+      return;
+    }
 
     setSaving(true);
 
@@ -269,41 +349,76 @@ export default function ProfileSettings() {
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <Select value={country} onValueChange={setCountry}>
+                <SelectTrigger id="country">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((c) => (
+                    <SelectItem key={c.code} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Select 
+                value={state} 
+                onValueChange={setState}
+                disabled={!country || availableStates.length === 0}
+              >
+                <SelectTrigger id="state">
+                  <SelectValue placeholder={country ? "Select state" : "Select country first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableStates.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
+                placeholder="Enter your city"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                placeholder="State"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="pincode">Pincode</Label>
+              <Label htmlFor="pincode">
+                Pincode / ZIP Code
+              </Label>
               <Input
                 id="pincode"
                 value={pincode}
-                onChange={(e) => setPincode(e.target.value)}
-                placeholder="Pincode"
+                onChange={(e) => handlePincodeChange(e.target.value)}
+                placeholder={selectedCountry?.pincodePlaceholder || "Enter pincode"}
+                maxLength={selectedCountry?.pincodeLength ? selectedCountry.pincodeLength + 2 : 10}
+                className={pincodeError ? 'border-destructive' : ''}
               />
+              {pincodeError && (
+                <p className="text-xs text-destructive">{pincodeError}</p>
+              )}
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-3">
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || !!pincodeError}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes
           </Button>
