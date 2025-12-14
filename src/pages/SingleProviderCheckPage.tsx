@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { registryService, UserProviderData } from '@/services/registryService';
 import { Country, ValidationResult, FieldScore } from '@/types/provider';
 import { cn } from '@/lib/utils';
-import { countries, getCountryByName, validatePincode } from '@/data/countriesAndStates';
+import { countries, getCountryByCode, validatePincode, validatePincodeForState } from '@/data/countriesAndStates';
 
 function FieldComparisonRow({ 
   field, 
@@ -89,25 +89,32 @@ export default function SingleProviderCheckPage() {
     specialty: ''
   });
 
-  const selectedCountryData = countries.find(c => 
-    (country === 'US' && c.code === 'US') || 
-    (country === 'IN' && c.code === 'IN')
-  );
+  const selectedCountryData = getCountryByCode(country);
   const selectedPhoneCountry = countries.find(c => c.phoneCode === phoneCode);
   const availableStates = selectedCountryData?.states || [];
 
   const handleCountryChange = (newCountry: Country) => {
     setCountry(newCountry);
-    setFormData(prev => ({ ...prev, country: newCountry, state: '' }));
+    setFormData(prev => ({ ...prev, country: newCountry, state: '', postal_code: '' }));
     setValidationResult(null);
     setPincodeError('');
     // Update phone code based on country
-    const countryData = countries.find(c => 
-      (newCountry === 'US' && c.code === 'US') || 
-      (newCountry === 'IN' && c.code === 'IN')
-    );
+    const countryData = getCountryByCode(newCountry);
     if (countryData) {
       setPhoneCode(countryData.phoneCode);
+    }
+  };
+
+  const handleStateChange = (newState: string) => {
+    setFormData(prev => ({ ...prev, state: newState }));
+    // Revalidate pincode when state changes
+    if (formData.postal_code && selectedCountryData) {
+      const validation = validatePincodeForState(formData.postal_code, newState, selectedCountryData.name);
+      if (!validation.valid) {
+        setPincodeError(validation.message || 'Invalid pincode for selected state');
+      } else {
+        setPincodeError('');
+      }
     }
   };
 
@@ -128,8 +135,17 @@ export default function SingleProviderCheckPage() {
     
     // Validate pincode
     if (digitsOnly && selectedCountryData) {
+      // First check format
       if (!validatePincode(digitsOnly, selectedCountryData.name)) {
         setPincodeError(`Invalid format. Example: ${selectedCountryData.pincodePlaceholder}`);
+      } else if (formData.state) {
+        // Then validate against state
+        const validation = validatePincodeForState(digitsOnly, formData.state, selectedCountryData.name);
+        if (!validation.valid) {
+          setPincodeError(validation.message || 'Invalid pincode for selected state');
+        } else {
+          setPincodeError('');
+        }
       } else {
         setPincodeError('');
       }
@@ -349,7 +365,7 @@ export default function SingleProviderCheckPage() {
                 <Label>State</Label>
                 <Select 
                   value={formData.state} 
-                  onValueChange={(v) => handleInputChange('state', v)}
+                  onValueChange={handleStateChange}
                   disabled={availableStates.length === 0}
                 >
                   <SelectTrigger>

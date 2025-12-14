@@ -15,7 +15,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { countries, getCountryByName, validatePincode } from '@/data/countriesAndStates';
+import { countries, getCountryByName, validatePincode, validatePincodeForState } from '@/data/countriesAndStates';
 
 interface ProfileData {
   full_name: string | null;
@@ -64,9 +64,16 @@ export default function ProfileSettings() {
     }
     // Revalidate pincode when country changes
     if (pincode && selectedCountry) {
-      validatePincodeInput(pincode);
+      validatePincodeInput(pincode, state);
     }
   }, [country]);
+
+  // Revalidate pincode when state changes
+  useEffect(() => {
+    if (pincode && country && state) {
+      validatePincodeInput(pincode, state);
+    }
+  }, [state]);
 
   const fetchProfile = async () => {
     try {
@@ -181,16 +188,16 @@ export default function ProfileSettings() {
       // Only allow digits
       const digitsOnly = value.replace(/\D/g, '');
       setPincode(digitsOnly);
-      validatePincodeInput(digitsOnly);
+      validatePincodeInput(digitsOnly, state);
     } else {
       // Allow alphanumeric for countries like UK, Canada
       const cleaned = value.toUpperCase().replace(/[^A-Z0-9 ]/g, '');
       setPincode(cleaned);
-      validatePincodeInput(cleaned);
+      validatePincodeInput(cleaned, state);
     }
   };
 
-  const validatePincodeInput = (value: string) => {
+  const validatePincodeInput = (value: string, selectedState: string) => {
     if (!value) {
       setPincodeError('');
       return true;
@@ -201,10 +208,20 @@ export default function ProfileSettings() {
       return false;
     }
 
+    // First validate format
     if (!validatePincode(value, country)) {
       const countryData = getCountryByName(country);
       setPincodeError(`Invalid format. Example: ${countryData?.pincodePlaceholder || ''}`);
       return false;
+    }
+
+    // Then validate against state if state is selected
+    if (selectedState) {
+      const stateValidation = validatePincodeForState(value, selectedState, country);
+      if (!stateValidation.valid) {
+        setPincodeError(stateValidation.message || 'Invalid pincode for selected state');
+        return false;
+      }
     }
 
     setPincodeError('');
@@ -215,7 +232,7 @@ export default function ProfileSettings() {
     if (!user) return;
 
     // Validate pincode before saving
-    if (pincode && !validatePincodeInput(pincode)) {
+    if (pincode && !validatePincodeInput(pincode, state)) {
       toast({
         variant: 'destructive',
         title: 'Invalid pincode',
