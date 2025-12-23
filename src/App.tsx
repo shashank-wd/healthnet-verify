@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { NavigationTabs } from "@/components/NavigationTabs";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -22,12 +23,13 @@ const queryClient = new QueryClient();
 
 const ProtectedLayout = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <NavigationTabs />
-      <main className="content-container">
+      <main className="content-container flex-1">
         {children}
       </main>
+      <Footer />
     </div>
   </ProtectedRoute>
 );
