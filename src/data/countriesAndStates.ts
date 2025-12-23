@@ -227,6 +227,10 @@ export const getCountryByCode = (code: string): CountryData | undefined => {
   return countries.find(c => c.code === code);
 };
 
+export const getCountryByPhoneCode = (phoneCode: string): CountryData | undefined => {
+  return countries.find(c => c.phoneCode === phoneCode);
+};
+
 export const validatePincode = (pincode: string, countryName: string): boolean => {
   const country = getCountryByName(countryName);
   if (!country) return true; // If country not found, allow any pincode
