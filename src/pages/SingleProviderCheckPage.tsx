@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { registryService, UserProviderData } from '@/services/registryService';
 import { Country, ValidationResult, FieldScore } from '@/types/provider';
 import { cn } from '@/lib/utils';
-import { countries, getCountryByCode, validatePincode, validatePincodeForState } from '@/data/countriesAndStates';
+import { countries, getCountryByCode, getCountryByPhoneCode, validatePincode, validatePincodeForState } from '@/data/countriesAndStates';
 
 function FieldComparisonRow({ 
   field, 
@@ -89,9 +89,9 @@ export default function SingleProviderCheckPage() {
     specialty: ''
   });
 
-  const selectedCountryData = getCountryByCode(country);
-  const selectedPhoneCountry = countries.find(c => c.phoneCode === phoneCode);
-  const availableStates = selectedCountryData?.states || [];
+  const selectedPhoneCountry = getCountryByPhoneCode(phoneCode);
+  const selectedCountryData = selectedPhoneCountry || getCountryByCode(country);
+  const availableStates = selectedPhoneCountry?.states || [];
 
   const handleCountryChange = (newCountry: Country) => {
     setCountry(newCountry);
@@ -314,7 +314,20 @@ export default function SingleProviderCheckPage() {
               <div className="flex gap-2">
                 <Select value={phoneCode} onValueChange={(v) => {
                   setPhoneCode(v);
-                  if (phoneNumber) {
+                  // Sync country with phone code selection
+                  const phoneCountry = getCountryByPhoneCode(v);
+                  if (phoneCountry) {
+                    const newCountry = phoneCountry.code as Country;
+                    setCountry(newCountry);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      country: newCountry, 
+                      state: '', 
+                      postal_code: '',
+                      phone: phoneNumber ? `${v} ${phoneNumber}` : '' 
+                    }));
+                    setPincodeError('');
+                  } else if (phoneNumber) {
                     setFormData(prev => ({ ...prev, phone: `${v} ${phoneNumber}` }));
                   }
                 }}>
